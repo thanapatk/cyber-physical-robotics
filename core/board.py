@@ -44,26 +44,35 @@ class DepositTile(BaseTile):
 class Board:
     def __init__(
         self,
+        board_size: tuple[int, int] = (20, 20),
         deposit_pos: tuple[tuple[int, int], tuple[int, int]] | None = None,
         total_gold_count: int = 40,
     ) -> None:
-        self.tiles = np.array([[BaseTile() for _ in range(20)] for _ in range(20)])
+        if board_size[0] <= 0 or board_size[1] <= 0:
+            raise ValueError("board_size cannot be less than 0")
+
+        self.tiles = np.array(
+            [[BaseTile() for _ in range(board_size[1])] for _ in range(board_size[0])]
+        )
         self.robot_locations: dict[tuple[int, int], set[Robot]] = defaultdict(set)
 
         # Setup the deposit tiles
         if deposit_pos is not None:
+            if not (
+                self.is_valid_position(deposit_pos[0])
+                and self.is_valid_position(deposit_pos[1])
+            ):
+                raise ValueError("Deposite pos is not valid")
+
             self.red_deposit_pos, self.blue_deposit_pos = deposit_pos
         else:
             self.red_deposit_pos = self.get_random_tile_pos()
-            self.blue_deposit_pos = self.red_deposit_pos
+            self.blue_deposit_pos = self.get_random_tile_pos()
             while self.blue_deposit_pos == self.red_deposit_pos:
                 self.blue_deposit_pos = self.get_random_tile_pos()
 
         self._set_tile(self.red_deposit_pos, DepositTile(team=TeamEnum.RED))
-        self._set_tile(
-            self.blue_deposit_pos,
-            DepositTile(team=TeamEnum.BLUE),
-        )
+        self._set_tile(self.blue_deposit_pos, DepositTile(team=TeamEnum.BLUE))
 
         # Randomly add gold bars across the field
         while total_gold_count != 0:

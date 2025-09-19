@@ -2,6 +2,8 @@ import logging
 from collections import defaultdict
 from typing import Sequence
 
+import numpy as np
+
 from core.actions import Action, MoveAction, PickupAction, TurnAction
 from core.board import Board, DepositTile
 from core.enums import Direction, TeamEnum
@@ -221,12 +223,15 @@ class SimulationController:
                 processed_robots.add(robot.robot_id)
                 processed_robots.add(partner.robot_id)
 
-    def get_simulation_state(self) -> dict:
-        output = dict()
+    def get_simulation_state(self) -> np.ndarray:
+        output = np.ndarray(self.board.tiles.shape, dtype=object)
 
-        for j in range(20):
-            for i in range(20):
+        for j in range(output.shape[0]):
+            for i in range(output.shape[1]):
                 pos = (i, j)
-                output[pos] = (self.board.get_robots_at(pos), self.board.get_tile(pos))
+                output[j, i] = (
+                    self.board.get_robots_at(pos),
+                    self.board.get_tile(pos),
+                )
 
         return output

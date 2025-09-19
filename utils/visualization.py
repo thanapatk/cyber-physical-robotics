@@ -2,6 +2,8 @@ import os
 import sys
 from typing import Sequence
 
+import numpy as np
+
 from core.board import BaseTile, DepositTile
 from core.enums import TeamEnum
 from core.robot import Robot
@@ -71,19 +73,19 @@ class Visualizer:
     @staticmethod
     def visualize_board(
         simulation_step: int,
-        board_status: dict[tuple[int, int], tuple[set[Robot], BaseTile]],
+        board_status: np.ndarray,
     ):
-        separator = "+" + "+".join(["-" * 7] * 20) + "+"
+        separator = "+" + "+".join(["-" * 7] * board_status.shape[1]) + "+"
 
         Visualizer.clear_console()
 
         print(f"Simulation step {simulation_step}")
         print(separator)
-        for j in range(20):
+        for j in range(board_status.shape[0]):
             line_1 = []
             line_2 = []
-            for i in range(20):
-                robots, tile = board_status[(i, j)]
+            for i in range(board_status.shape[0]):
+                robots, tile = board_status[j, i]
 
                 red_robots = []
                 blue_robots = []
