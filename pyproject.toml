@@ -1,0 +1,12 @@
+[project]
+name = "cyber-physical-robotics"
+version = "0.1.0"
+description = "Cyber Physical Robotics Term Project"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "black>=25.1.0",
+    "isort>=6.0.1",
+    "numpy>=2.3.2",
+    "pydantic>=2.11.7",
+]
