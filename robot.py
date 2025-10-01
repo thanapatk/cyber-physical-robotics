@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from core.actions import Action, MoveAction, TurnAction
 from core.enums import Direction
+from core.message_handler import Message
 from core.robot import BaseRobot, Observation, TeamInfo
 
 
@@ -20,6 +21,10 @@ class SensedTile(BaseModel):
     step: int
     gold_count: int
     # same_team_robot_count: int
+
+
+class ObservationsMessage(Message):
+    value: list[Observation]
 
 
 class Robot(BaseRobot):
@@ -89,7 +94,7 @@ class Robot(BaseRobot):
         cost_matrix = self.generate_cost_matrix()
         coldness_map = self.get_coldness_map(step)
 
-        COLDNESS_WEIGHT = 10
+        COLDNESS_WEIGHT = 1.5
         exploration_score_map = (coldness_map * COLDNESS_WEIGHT) - cost_matrix
 
         # Prevent selecting the current tile
@@ -152,26 +157,55 @@ class Robot(BaseRobot):
 
         return actions
 
+    def _update_sensed_tile(self, step: int, observation: Observation):
+        pos = observation.pos
+
+        # Only create new `SensedTile` when not found
+        sensed_tile = self.sensed_map.get(pos, SensedTile(step=-1, gold_count=0))
+
+        # Skip if the observation is outdated
+        if sensed_tile.step > step:
+            return
+
+        sensed_tile.step = step
+        sensed_tile.gold_count = observation.gold_count
+
+        self.sensed_map[pos] = sensed_tile
+
     def decide_action(self, step: int, observations: list[Observation]) -> Action:
         # Update the `sensed_map`
+        while len(self.incomming_messages) != 0:
+            message = self.incomming_messages.popleft()
+
+            if type(message) is ObservationsMessage:
+                step = message.step
+                for observation in message.value:
+                    self._update_sensed_tile(message.step, observation)
+
         for observation in observations:
-            pos = observation.pos
+            self._update_sensed_tile(step, observation)
 
-            # Only create new `SensedTile` when not found
-            sensed_tile = self.sensed_map.get(pos, SensedTile(step=-1, gold_count=0))
-            sensed_tile.step = step
-            sensed_tile.gold_count = observation.gold_count
+        # Broadcast the observation
+        self.outgoing_messages.append(
+            (
+                None,
+                ObservationsMessage(
+                    sender_id=self.robot_id, step=step, value=observations
+                ),
+            )
+        )
 
-            self.sensed_map[pos] = sensed_tile
-
-        # TODO: update from boardcasted message
-
-        if len(self.saved_actions) != 0:
-            return self.saved_actions.popleft()
+        # if len(self.saved_actions) != 0:
+        #     return self.saved_actions.popleft()
 
         if self.state == RobotState.EXPLORING:
             target = self.decide_exploration_target(step)
-            self.saved_actions.extend(self.pathfind(target))
+
+            if target != self.target_pos:
+                self.target_pos = target
+                self.saved_actions.clear()
+                self.saved_actions.extend(self.pathfind(self.target_pos))
+
             return self.saved_actions.popleft()
 
         return Action(robot_id=self.robot_id)

@@ -7,6 +7,7 @@ import numpy as np
 from core.actions import Action, MoveAction, PickupAction, TurnAction
 from core.board import Board, DepositTile
 from core.enums import TeamEnum
+from core.message_handler import Message, MessageHandler
 from core.robot import BaseRobot
 from utils.direction import get_pos_to_add
 
@@ -21,8 +22,16 @@ class SimulationController:
         for robot in self.robots:
             self.board.add_robot(robot=robot, pos=robot.pos)
 
+        self.message_handler = MessageHandler()
+
     def step(self):
+        self.handle_outgoing_messages()
+
         actions = self.collect_actions()
+        messages = self.collect_messages()
+
+        self.handle_incoming_messages(messages)
+
         validated_actions = self.resolve_conflicts(actions)
 
         self.logger.debug(
@@ -224,3 +233,21 @@ class SimulationController:
                 )
 
         return output
+
+    def collect_messages(self) -> list[tuple[int | None, Message]]:
+        output = []
+        for robot in self.robots:
+            output.extend(robot.outgoing_messages)
+            robot.outgoing_messages.clear()
+        return output
+
+    def handle_incoming_messages(self, messages: list[tuple[int | None, Message]]):
+        for receiver_id, message in messages:
+            if receiver_id:
+                self.message_handler.direct_message(receiver_id, message)
+            else:
+                self.message_handler.broadcast(message)
+
+    def handle_outgoing_messages(self):
+        for receiver_id, message in self.message_handler.get_messages(self.step_count):
+            self.robots[receiver_id].incomming_messages.append(message)

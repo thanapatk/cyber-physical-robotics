@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
+from collections import deque
+from typing import Deque
 
 import numpy as np
 from pydantic import BaseModel
 
 from core.actions import Action
 from core.enums import Direction, TeamEnum
+from core.message_handler import Message
 
 
 class Observation(BaseModel):
@@ -34,6 +37,9 @@ class BaseRobot(ABC):
         self.pos = pos
         self.direction = direction
         self.partner_id: int | None = None
+
+        self.incomming_messages: Deque[Message] = deque()
+        self.outgoing_messages: Deque[tuple[int | None, Message]] = deque()
 
     def _get_observation_pos(self):
         base_i = (1, 2)
