@@ -6,7 +6,7 @@ import numpy as np
 
 from core.board import BaseTile, DepositTile
 from core.enums import TeamEnum
-from core.robot import Robot
+from core.robot import BaseRobot
 
 
 class ColoredText:
@@ -37,13 +37,15 @@ class Visualizer:
             sys.stdout.flush()
 
     @staticmethod
-    def direction_string(robot: Robot):
+    def direction_string(robot: BaseRobot):
         direction = robot.direction
         return "▲▼▶◀"[direction.value]
 
     @staticmethod
     def cell(
-        red_robots: Sequence[Robot], blue_robots: Sequence[Robot], tile: BaseTile
+        red_robots: Sequence[BaseRobot],
+        blue_robots: Sequence[BaseRobot],
+        tile: BaseTile,
     ) -> tuple[str, str]:
         red = "".join(map(Visualizer.direction_string, red_robots))
         blue = "".join(map(Visualizer.direction_string, blue_robots))

@@ -21,7 +21,7 @@ class TeamInfo(BaseModel):
         return self.team == other.team
 
 
-class Robot(ABC):
+class BaseRobot(ABC):
     def __init__(
         self,
         robot_id: int,
@@ -34,9 +34,6 @@ class Robot(ABC):
         self.pos = pos
         self.direction = direction
         self.partner_id: int | None = None
-
-        self.messages = list()
-        self.sensed_map: dict[tuple[int, int], Observation] = dict()
 
     def _get_observation_pos(self):
         base_i = (1, 2)
@@ -57,7 +54,7 @@ class Robot(ABC):
 
         return np.array(self.pos) + np.array(output)
 
-    def _is_same_team(self, robot: "Robot") -> bool:
+    def _is_same_team(self, robot: "BaseRobot") -> bool:
         return self.team_info == robot.team_info
 
     def observe(self, board) -> list[Observation]:
@@ -84,5 +81,5 @@ class Robot(ABC):
         return output
 
     @abstractmethod
-    def decide_action(self, observations: list[Observation]) -> Action:
+    def decide_action(self, step: int, observations: list[Observation]) -> Action:
         pass

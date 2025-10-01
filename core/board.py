@@ -4,7 +4,7 @@ from collections import defaultdict
 import numpy as np
 
 from core.enums import TeamEnum
-from core.robot import Robot
+from core.robot import BaseRobot
 
 
 class BaseTile:
@@ -54,7 +54,8 @@ class Board:
         self.tiles = np.array(
             [[BaseTile() for _ in range(board_size[1])] for _ in range(board_size[0])]
         )
-        self.robot_locations: dict[tuple[int, int], set[Robot]] = defaultdict(set)
+        self.robot_locations: dict[tuple[int, int], set[BaseRobot]] = defaultdict(set)
+        self.board_size = board_size
 
         # Setup the deposit tiles
         if deposit_pos is not None:
@@ -99,11 +100,11 @@ class Board:
         pos = self.red_deposit_pos if team == TeamEnum.RED else self.blue_deposit_pos
         return self.get_tile(pos)  # pyright: ignore
 
-    def add_robot(self, robot: Robot, pos: tuple[int, int]):
+    def add_robot(self, robot: BaseRobot, pos: tuple[int, int]):
         self.robot_locations[pos].add(robot)
         robot.pos = pos
 
-    def move_robot(self, robot: Robot, new_pos: tuple[int, int]):
+    def move_robot(self, robot: BaseRobot, new_pos: tuple[int, int]):
         self.robot_locations[robot.pos].remove(robot)
 
         # Cleanup any empty key
@@ -112,7 +113,7 @@ class Board:
 
         self.add_robot(robot, new_pos)
 
-    def get_robots_at(self, pos: tuple[int, int]) -> set[Robot]:
+    def get_robots_at(self, pos: tuple[int, int]) -> set[BaseRobot]:
         if not self.is_valid_position(pos):
             raise IndexError("Position is not valid")
 
