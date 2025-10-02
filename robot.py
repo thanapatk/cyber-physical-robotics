@@ -83,7 +83,7 @@ class Robot(BaseRobot):
         return manhattan_distance + turn_cost
 
     def get_coldness_map(self, step: int):
-        coldness_map = np.full(self.board_size, 2000)
+        coldness_map = np.full(self.board_size, 100)
 
         for pos, sensed_tile in self.sensed_map.items():
             coldness_map[pos[1], pos[0]] = step - sensed_tile.step
@@ -94,8 +94,9 @@ class Robot(BaseRobot):
         cost_matrix = self.generate_cost_matrix()
         coldness_map = self.get_coldness_map(step)
 
-        COLDNESS_WEIGHT = 1.5
-        exploration_score_map = (coldness_map * COLDNESS_WEIGHT) - cost_matrix
+        # COLDNESS_WEIGHT = 1.5
+        # exploration_score_map = (coldness_map * COLDNESS_WEIGHT) - cost_matrix
+        exploration_score_map = np.exp(coldness_map) - cost_matrix * 5
 
         # Prevent selecting the current tile
         exploration_score_map[self.pos[1], self.pos[0]] = -999
@@ -178,7 +179,6 @@ class Robot(BaseRobot):
             message = self.incomming_messages.popleft()
 
             if type(message) is ObservationsMessage:
-                step = message.step
                 for observation in message.value:
                     self._update_sensed_tile(message.step, observation)
 
