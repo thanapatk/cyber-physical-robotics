@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from core.actions import Action
 from core.enums import Direction, TeamEnum
 from core.message_handler import Message
+from core.tile import DepositTile
 
 
 class Observation(BaseModel):
@@ -69,8 +70,9 @@ class BaseRobot(ABC):
         output = []
         for pos in filter(board.is_valid_position, all_observable_pos):
             pos = tuple(pos)
+            tile = board.get_tile(pos)
 
-            gold_count = board.get_tile(pos).gold_count
+            gold_count = tile.gold_count if type(tile) is not DepositTile else 0
             robot_count = 0
             for robot in board.get_robots_at(pos):
                 if self._is_same_team(robot):
