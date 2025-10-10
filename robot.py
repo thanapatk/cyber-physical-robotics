@@ -352,10 +352,10 @@ class Robot(BaseRobot):
             }
 
             if not is_committed:
-                if newly_decided_mission and self.robot_id in [
+                if newly_decided_mission and self.robot_id in {
                     newly_decided_mission.leader_id,
                     newly_decided_mission.follower_id,
-                ]:
+                }:
                     if self.current_mission != newly_decided_mission:
                         self.state = RobotState.EXECUTING
                         self.saved_actions.clear()
@@ -372,31 +372,6 @@ class Robot(BaseRobot):
             self.paxos_handler.consensus_reached = False
             self.paxos_handler.final_value = None
             self.proposal_start_step = None
-        if self.state == RobotState.PROPOSING:
-            if (
-                self.proposal_start_step is not None
-                and self.paxos_handler.did_proposal_fail(step, self.proposal_start_step)
-            ):
-                self.log_paxos(
-                    step,
-                    f"Proposal TIMED OUT. Had {len(self.paxos_handler.promises_recieved)} promises (need 6+)",
-                )
-                self.failed_proposal_count += 1
-                backoff_time = min(2**self.failed_proposal_count, 50)
-                self.backoff_until_step = step + backoff_time
-                self.log_paxos(step, f"Entering backoff for {backoff_time} steps")
-
-                self.state = RobotState.EXPLORING
-                self.paxos_handler.reset_proposer_state()
-                self.proposal_start_step = None
-            elif not self.paxos_handler.is_proposing:
-                self.log_paxos(step, "Proposal ABANDONED (higher proposal seen)")
-                self.failed_proposal_count += 1
-                backoff_time = min(2 ** (self.failed_proposal_count - 1), 30)
-                self.backoff_until_step = step + backoff_time
-
-                self.state = RobotState.EXPLORING
-                self.proposal_start_step = None
 
         if self.state == RobotState.EXPLORING:
             best_local_mission = self.find_best_mission_from_map(step)
@@ -433,6 +408,31 @@ class Robot(BaseRobot):
             return WaitAction(robot_id=self.robot_id)
 
         elif self.state == RobotState.PROPOSING:
+            if (
+                self.proposal_start_step is not None
+                and self.paxos_handler.did_proposal_fail(step, self.proposal_start_step)
+            ):
+                self.log_paxos(
+                    step,
+                    f"Proposal TIMED OUT. Had {len(self.paxos_handler.promises_recieved)} promises (need 6+)",
+                )
+                self.failed_proposal_count += 1
+                backoff_time = min(2**self.failed_proposal_count, 50)
+                self.backoff_until_step = step + backoff_time
+                self.log_paxos(step, f"Entering backoff for {backoff_time} steps")
+
+                self.state = RobotState.EXPLORING
+                self.paxos_handler.reset_proposer_state()
+                self.proposal_start_step = None
+            elif not self.paxos_handler.is_proposing:
+                self.log_paxos(step, "Proposal ABANDONED (higher proposal seen)")
+                self.failed_proposal_count += 1
+                backoff_time = min(2 ** (self.failed_proposal_count - 1), 30)
+                self.backoff_until_step = step + backoff_time
+
+                self.state = RobotState.EXPLORING
+                self.proposal_start_step = None
+
             if len(self.saved_actions) != 0:
                 return self.saved_actions.popleft()
             else:
