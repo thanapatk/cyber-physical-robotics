@@ -4,7 +4,7 @@ from typing import Sequence
 
 import numpy as np
 
-from core.board import BaseTile, DepositTile
+from core.tile import BaseTile, DepositTile
 from core.enums import TeamEnum
 from core.robot import BaseRobot
 

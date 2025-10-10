@@ -5,40 +5,7 @@ import numpy as np
 
 from core.enums import TeamEnum
 from core.robot import BaseRobot
-
-
-class BaseTile:
-    def __init__(self, gold_count: int = 0) -> None:
-        self.gold_count = gold_count
-
-    def take(self):
-        if self.gold_count == 0:
-            raise ValueError("Attempted to take gold from an empty tile.")
-
-        self.gold_count -= 1
-
-    def add(self):
-        self.gold_count += 1
-
-
-class DepositTile(BaseTile):
-    def __init__(self, team: TeamEnum) -> None:
-        super().__init__()
-        self.team = team
-        self.logger = logging.getLogger(__name__)
-
-    def take(self):
-        raise NotImplementedError("Cannot take gold from a deposit tile")
-
-    def add(self):
-        raise NotImplementedError("Cannot add/drop gold on a deposit tile")
-
-    def deposit(self):
-        self.gold_count += 1
-
-        self.logger.info(
-            f"Team {self.team.value} deposited! Current gold count: {self.gold_count}"
-        )
+from core.tile import BaseTile, DepositTile
 
 
 class Board:
@@ -52,9 +19,11 @@ class Board:
             raise ValueError("board_size cannot be less than 0")
 
         self.tiles = np.array(
-            [[BaseTile() for _ in range(board_size[1])] for _ in range(board_size[0])]
+            [[BaseTile() for _ in range(board_size[1])]
+             for _ in range(board_size[0])]
         )
-        self.robot_locations: dict[tuple[int, int], set[BaseRobot]] = defaultdict(set)
+        self.robot_locations: dict[tuple[int, int],
+                                   set[BaseRobot]] = defaultdict(set)
         self.board_size = board_size
 
         # Setup the deposit tiles

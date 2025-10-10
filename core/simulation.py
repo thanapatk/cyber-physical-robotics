@@ -5,10 +5,11 @@ from typing import Sequence
 import numpy as np
 
 from core.actions import Action, MoveAction, PickupAction, TurnAction
-from core.board import Board, DepositTile
+from core.board import Board
 from core.enums import TeamEnum
 from core.message_handler import Message, MessageHandler
 from core.robot import BaseRobot
+from core.tile import DepositTile
 from utils.direction import get_pos_to_add
 
 
