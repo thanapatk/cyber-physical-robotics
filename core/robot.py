@@ -1,10 +1,14 @@
 from abc import ABC, abstractmethod
+from collections import deque
+from typing import Deque
 
 import numpy as np
 from pydantic import BaseModel
 
 from core.actions import Action
 from core.enums import Direction, TeamEnum
+from core.message_handler import Message
+from core.tile import DepositTile
 
 
 class Observation(BaseModel):
@@ -21,7 +25,7 @@ class TeamInfo(BaseModel):
         return self.team == other.team
 
 
-class Robot(ABC):
+class BaseRobot(ABC):
     def __init__(
         self,
         robot_id: int,
@@ -35,8 +39,8 @@ class Robot(ABC):
         self.direction = direction
         self.partner_id: int | None = None
 
-        self.messages = list()
-        self.sensed_map: dict[tuple[int, int], Observation] = dict()
+        self.incomming_messages: Deque[Message] = deque()
+        self.outgoing_messages: Deque[tuple[int | None, Message]] = deque()
 
     def _get_observation_pos(self):
         base_i = (1, 2)
@@ -57,7 +61,7 @@ class Robot(ABC):
 
         return np.array(self.pos) + np.array(output)
 
-    def _is_same_team(self, robot: "Robot") -> bool:
+    def _is_same_team(self, robot: "BaseRobot") -> bool:
         return self.team_info == robot.team_info
 
     def observe(self, board) -> list[Observation]:
@@ -66,8 +70,9 @@ class Robot(ABC):
         output = []
         for pos in filter(board.is_valid_position, all_observable_pos):
             pos = tuple(pos)
+            tile = board.get_tile(pos)
 
-            gold_count = board.get_tile(pos).gold_count
+            gold_count = tile.gold_count if type(tile) is not DepositTile else 0
             robot_count = 0
             for robot in board.get_robots_at(pos):
                 if self._is_same_team(robot):
@@ -84,5 +89,5 @@ class Robot(ABC):
         return output
 
     @abstractmethod
-    def decide_action(self, observations: list[Observation]) -> Action:
+    def decide_action(self, step: int, observations: list[Observation]) -> Action:
         pass

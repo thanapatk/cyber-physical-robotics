@@ -7,6 +7,10 @@ class Action(BaseModel):
     robot_id: int
 
 
+class WaitAction(Action):
+    pass
+
+
 class TurnAction(Action):
     new_direction: Direction
 

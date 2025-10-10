@@ -5,14 +5,17 @@ from typing import Sequence
 import numpy as np
 
 from core.actions import Action, MoveAction, PickupAction, TurnAction
-from core.board import Board, DepositTile
-from core.enums import Direction, TeamEnum
-from core.robot import Robot
+from core.board import Board
+from core.enums import TeamEnum
+from core.message_handler import Message, MessageHandler
+from core.robot import BaseRobot
+from core.tile import DepositTile
+from utils.direction import get_pos_to_add
 
 
 class SimulationController:
-    def __init__(self, robots: Sequence[Robot], board: Board) -> None:
-        self.robots: Sequence[Robot] = robots
+    def __init__(self, robots: Sequence[BaseRobot], board: Board) -> None:
+        self.robots: Sequence[BaseRobot] = robots
         self.board: Board = board
         self.step_count: int = 0
         self.logger = logging.getLogger(__name__)
@@ -20,8 +23,16 @@ class SimulationController:
         for robot in self.robots:
             self.board.add_robot(robot=robot, pos=robot.pos)
 
+        self.message_handler = MessageHandler()
+
     def step(self):
+        self.handle_outgoing_messages()
+
         actions = self.collect_actions()
+        messages = self.collect_messages()
+
+        self.handle_incoming_messages(messages)
+
         validated_actions = self.resolve_conflicts(actions)
 
         self.logger.debug(
@@ -37,31 +48,19 @@ class SimulationController:
         actions = []
         for robot in self.robots:
             observations = robot.observe(self.board)
-            for observation in observations:
-                robot.sensed_map[observation.pos] = observation
-
-            actions.append(robot.decide_action(observations))
+            actions.append(robot.decide_action(self.step_count, observations))
 
         return actions
 
-    @staticmethod
-    def _get_pos_to_add(direction: Direction) -> tuple[int, int]:
-        return {
-            Direction.NORTH: (0, -1),
-            Direction.SOUTH: (0, 1),
-            Direction.EAST: (1, 0),
-            Direction.WEST: (-1, 0),
-        }[direction]
-
     def _get_new_pos(self, action: MoveAction) -> tuple[int, int]:
         robot = self.robots[action.robot_id]
-        pos_to_add = self._get_pos_to_add(robot.direction)
+        pos_to_add = get_pos_to_add(robot.direction)
         return (robot.pos[0] + pos_to_add[0], robot.pos[1] + pos_to_add[1])
 
     def _is_valid_move_action(self, action: MoveAction) -> bool:
         return self.board.is_valid_position(self._get_new_pos(action))
 
-    def pickup_gold(self, robot_1: Robot, robot_2: Robot):
+    def pickup_gold(self, robot_1: BaseRobot, robot_2: BaseRobot):
         if robot_1.partner_id or robot_2.partner_id:
             raise ValueError("One or more robots is already carrying gold")
 
@@ -70,7 +69,7 @@ class SimulationController:
 
         self.board.get_tile(robot_1.pos).take()
 
-    def drop_gold(self, robot_1: Robot, robot_2: Robot):
+    def drop_gold(self, robot_1: BaseRobot, robot_2: BaseRobot):
         if (
             robot_1.partner_id != robot_2.robot_id
             or robot_2.partner_id != robot_1.robot_id
@@ -235,3 +234,21 @@ class SimulationController:
                 )
 
         return output
+
+    def collect_messages(self) -> list[tuple[int | None, Message]]:
+        output = []
+        for robot in self.robots:
+            output.extend(robot.outgoing_messages)
+            robot.outgoing_messages.clear()
+        return output
+
+    def handle_incoming_messages(self, messages: list[tuple[int | None, Message]]):
+        for receiver_id, message in messages:
+            if receiver_id:
+                self.message_handler.direct_message(receiver_id, message)
+            else:
+                self.message_handler.broadcast(message)
+
+    def handle_outgoing_messages(self):
+        for receiver_id, message in self.message_handler.get_messages(self.step_count):
+            self.robots[receiver_id].incomming_messages.append(message)
