@@ -1,4 +1,3 @@
-import random
 from collections import deque
 from enum import Enum, auto
 from typing import Deque
@@ -82,20 +81,20 @@ class Robot(BaseRobot):
         self.backoff_until_step: int = 0
 
         # --- DIAGNOSTICS ---
-        self.paxos_debug_log: list[str] = []
+        # self.paxos_debug_log: list[str] = []
 
-    def log_paxos(self, step: int, msg: str):
-        """Log Paxos events for debugging."""
-        self.paxos_debug_log.append(f"Step {step} | Robot {self.robot_id}: {msg}")
-        # if len(self.paxos_debug_log) > 100:  # Keep last 100 entries
-        #     self.paxos_debug_log.pop(0)
-
-    def print_paxos_log(self):
-        """Print the Paxos debug log."""
-        if self.paxos_debug_log:
-            print(f"\n=== PAXOS LOG FOR ROBOT {self.robot_id} ===")
-            for entry in self.paxos_debug_log:  # [-50:]:  # Last 20 entries
-                print(entry)
+    # def log_paxos(self, step: int, msg: str):
+    #     """Log Paxos events for debugging."""
+    #     self.paxos_debug_log.append(f"Step {step} | Robot {self.robot_id}: {msg}")
+    #     # if len(self.paxos_debug_log) > 100:  # Keep last 100 entries
+    #     #     self.paxos_debug_log.pop(0)
+    #
+    # def print_paxos_log(self):
+    #     """Print the Paxos debug log."""
+    #     if self.paxos_debug_log:
+    #         print(f"\n=== PAXOS LOG FOR ROBOT {self.robot_id} ===")
+    #         for entry in self.paxos_debug_log:  # [-50:]:  # Last 20 entries
+    #             print(entry)
 
     def generate_cost_matrix(self):
         x, y = self.pos
@@ -255,17 +254,17 @@ class Robot(BaseRobot):
                     self.sensed_map[pos].step = message.step
             elif type(message) is PrepareRequest:
                 # --- DIAGNOSTIC ---
-                self.log_paxos(
-                    step,
-                    f"Received PrepareRequest from {message.sender_id} with ID {message.paxos_id}",
-                )
+                # self.log_paxos(
+                #     step,
+                #     f"Received PrepareRequest from {message.sender_id} with ID {message.paxos_id}",
+                # )
 
                 prepare_response = self.paxos_handler.handle_prepare_request(
                     message=message, step=step, current_tile=self.pos
                 )
                 if prepare_response:
                     sender_id, response = prepare_response
-                    self.log_paxos(step, f"Sending PrepareResponse to {sender_id}")
+                    # self.log_paxos(step, f"Sending PrepareResponse to {sender_id}")
                     self.outgoing_messages.append((sender_id, response))
             elif type(message) is PrepareResponse:
                 # --- FIX: Only count promises for the current active proposal ---
@@ -273,46 +272,46 @@ class Robot(BaseRobot):
                     not self.paxos_handler.is_proposing
                     or message.paxos_id != self.paxos_handler.proposal_id
                 ):
-                    self.log_paxos(
-                        step,
-                        f"Ignoring PrepareResponse: not proposing or wrong proposal ID",
-                    )
+                    # self.log_paxos(
+                    #     step,
+                    #     f"Ignoring PrepareResponse: not proposing or wrong proposal ID",
+                    # )
                     continue
 
                 # --- DIAGNOSTIC ---
-                self.log_paxos(
-                    step,
-                    f"Received PrepareResponse from {message.sender_id}, now have {len(self.paxos_handler.promises_recieved) + 1} promises",
-                )
+                # self.log_paxos(
+                #     step,
+                #     f"Received PrepareResponse from {message.sender_id}, now have {len(self.paxos_handler.promises_recieved) + 1} promises",
+                # )
 
                 accept_request = self.paxos_handler.handle_promise_response(
                     message=message, step=step
                 )
                 if accept_request:
-                    self.log_paxos(step, "Have majority! Sending AcceptRequest")
+                    # self.log_paxos(step, "Have majority! Sending AcceptRequest")
                     self.outgoing_messages.append((None, accept_request))
             elif type(message) is AcceptRequest:
                 # --- DIAGNOSTIC ---
-                self.log_paxos(step, f"Received AcceptRequest from {message.sender_id}")
+                # self.log_paxos(step, f"Received AcceptRequest from {message.sender_id}")
 
                 accept_response = self.paxos_handler.handle_accept_request(
                     message=message, step=step
                 )
                 if accept_response:
-                    self.log_paxos(step, "Accepting! Sending AcceptResponse")
+                    # self.log_paxos(step, "Accepting! Sending AcceptResponse")
                     self.outgoing_messages.append((None, accept_response))
             elif type(message) is AcceptResponse:
-                self.log_paxos(
-                    step, f"Received AcceptResponse from {message.sender_id}"
-                )
+                # self.log_paxos(
+                #     step, f"Received AcceptResponse from {message.sender_id}"
+                # )
                 self.paxos_handler.handle_accept_response(message=message)
                 # --- DIAGNOSTIC: Log acceptance tally ---
                 if self.paxos_handler.acceptance_tally:
                     total_accepts = sum(self.paxos_handler.acceptance_tally.values())
-                    self.log_paxos(
-                        step,
-                        f"Total accepts: {total_accepts}, consensus: {self.paxos_handler.consensus_reached}",
-                    )
+                    # self.log_paxos(
+                    #     step,
+                    #     f"Total accepts: {total_accepts}, consensus: {self.paxos_handler.consensus_reached}",
+                    # )
             elif type(message) is TurnMessage:
                 self.agreed_direction = message.value
             elif (
@@ -380,10 +379,10 @@ class Robot(BaseRobot):
                 and not self.current_mission
                 and step >= self.backoff_until_step
             ):
-                self.log_paxos(
-                    step,
-                    f"Starting election for mission at {best_local_mission.target_tile}",
-                )
+                # self.log_paxos(
+                #     step,
+                #     f"Starting election for mission at {best_local_mission.target_tile}",
+                # )
                 prepare_request = self.paxos_handler.start_election(
                     mission=best_local_mission, step=step
                 )
@@ -412,22 +411,22 @@ class Robot(BaseRobot):
                 self.proposal_start_step is not None
                 and self.paxos_handler.did_proposal_fail(step, self.proposal_start_step)
             ):
-                self.log_paxos(
-                    step,
-                    f"Proposal TIMED OUT. Had {len(self.paxos_handler.promises_recieved)} promises (need 6+)",
-                )
+                # self.log_paxos(
+                #     step,
+                #     f"Proposal TIMED OUT. Had {len(self.paxos_handler.promises_recieved)} promises (need 6+)",
+                # )
                 self.failed_proposal_count += 1
-                backoff_time = min(2**self.failed_proposal_count, 50)
+                backoff_time = min(2**self.failed_proposal_count, 100)
                 self.backoff_until_step = step + backoff_time
-                self.log_paxos(step, f"Entering backoff for {backoff_time} steps")
+                # self.log_paxos(step, f"Entering backoff for {backoff_time} steps")
 
                 self.state = RobotState.EXPLORING
                 self.paxos_handler.reset_proposer_state()
                 self.proposal_start_step = None
             elif not self.paxos_handler.is_proposing:
-                self.log_paxos(step, "Proposal ABANDONED (higher proposal seen)")
+                # self.log_paxos(step, "Proposal ABANDONED (higher proposal seen)")
                 self.failed_proposal_count += 1
-                backoff_time = min(2 ** (self.failed_proposal_count - 1), 30)
+                backoff_time = min(2 ** (self.failed_proposal_count - 1), 100)
                 self.backoff_until_step = step + backoff_time
 
                 self.state = RobotState.EXPLORING
