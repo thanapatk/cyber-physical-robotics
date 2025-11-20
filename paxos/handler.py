@@ -3,7 +3,7 @@ from utils.distance import manhattan_distance
 
 
 class PaxosHandler:
-    PROPOSAL_TIMEOUT = 30
+    PROPOSAL_TIMEOUT = 75
 
     def __init__(self, robot_id: int, team_size: int = 10) -> None:
         self.robot_id = robot_id
@@ -58,15 +58,15 @@ class PaxosHandler:
         self.is_proposing = False
 
         value_to_propose = self.proposed_mission
-        best_promise = max(self.promises_recieved,
-                           key=lambda p: p.paxos_id or (-1,), default=None)
+        best_promise = max(
+            self.promises_recieved, key=lambda p: p.paxos_id or (-1,), default=None
+        )
         if best_promise and best_promise.value:
             value_to_propose = best_promise.value
 
-        best_follower = min(self.promises_recieved,
-                            key=lambda p: p.follower_bid)
+        best_follower = min(self.promises_recieved, key=lambda p: p.follower_bid)
 
-        if not value_to_propose or not self.proposal_id:
+        if not value_to_propose or self.proposal_id is None:
             return None
 
         full_mission = FullMission(
@@ -86,7 +86,7 @@ class PaxosHandler:
     def handle_prepare_request(
         self, message: PrepareRequest, step: int, current_tile: tuple[int, int]
     ) -> tuple[int, PrepareResponse] | None:
-        if self.promised_id and message.paxos_id < self.promised_id:
+        if self.promised_id is not None and message.paxos_id < self.promised_id:
             return None
 
         if self.is_proposing and message.paxos_id > self.proposal_id:
@@ -106,7 +106,7 @@ class PaxosHandler:
     def handle_accept_request(
         self, message: AcceptRequest, step: int
     ) -> AcceptResponse | None:
-        if self.promised_id and message.paxos_id < self.promised_id:
+        if self.promised_id is not None and message.paxos_id < self.promised_id:
             return None
 
         self.promised_id = message.paxos_id
@@ -127,9 +127,15 @@ class PaxosHandler:
         key = tuple(message.value.model_dump().items())
         self.acceptance_tally[key] = self.acceptance_tally.get(key, 0) + 1
 
-        if not self.consensus_reached and self.acceptance_tally[key] > self.team_size / 2:
+        if (
+            not self.consensus_reached
+            and self.acceptance_tally[key] > self.team_size / 2
+        ):
             self.consensus_reached = True
             self.final_value = message.value
 
     def did_proposal_fail(self, current_step: int, proposal_start_step: int) -> bool:
-        return self.is_proposing and (current_step - proposal_start_step) > self.PROPOSAL_TIMEOUT
+        return (
+            self.is_proposing
+            and (current_step - proposal_start_step) > self.PROPOSAL_TIMEOUT
+        )
