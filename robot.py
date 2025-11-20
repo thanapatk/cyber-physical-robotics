@@ -306,12 +306,12 @@ class Robot(BaseRobot):
                 # )
                 self.paxos_handler.handle_accept_response(message=message)
                 # --- DIAGNOSTIC: Log acceptance tally ---
-                if self.paxos_handler.acceptance_tally:
-                    total_accepts = sum(self.paxos_handler.acceptance_tally.values())
-                    # self.log_paxos(
-                    #     step,
-                    #     f"Total accepts: {total_accepts}, consensus: {self.paxos_handler.consensus_reached}",
-                    # )
+                # if self.paxos_handler.acceptance_tally:
+                #     total_accepts = sum(self.paxos_handler.acceptance_tally.values())
+                # self.log_paxos(
+                #     step,
+                #     f"Total accepts: {total_accepts}, consensus: {self.paxos_handler.consensus_reached}",
+                # )
             elif type(message) is TurnMessage:
                 self.agreed_direction = message.value
             elif (
@@ -460,7 +460,7 @@ class Robot(BaseRobot):
             else:
                 self.timeout_counter -= 1
 
-            if self.partner_id:
+            if self.partner_id is not None:
                 self.agreed_direction = None
                 self.sensed_map[self.pos].gold_count -= 1
 
@@ -473,7 +473,10 @@ class Robot(BaseRobot):
                     )
                 )
 
-                if self.robot_id == self.current_mission.leader_id:
+                if (
+                    self.current_mission
+                    and self.robot_id == self.current_mission.leader_id
+                ):
                     self.outgoing_messages.append(
                         (
                             None,
@@ -531,7 +534,7 @@ class Robot(BaseRobot):
                 return PickupAction(robot_id=self.robot_id, pos=self.pos)
 
         elif self.state == RobotState.DELIVERING:
-            if not self.partner_id and self.pos != self.team_info.deposit_pos:
+            if self.partner_id is None and self.pos != self.team_info.deposit_pos:
                 self.outgoing_messages.append(
                     (None, MissionAbortMessage(sender_id=self.robot_id, step=step))
                 )
@@ -539,7 +542,7 @@ class Robot(BaseRobot):
                 self.saved_actions.clear()
                 self.state = RobotState.EXPLORING
                 return WaitAction(robot_id=self.robot_id)
-            elif not self.partner_id and self.pos == self.team_info.deposit_pos:
+            elif self.partner_id is None and self.pos == self.team_info.deposit_pos:
                 if (
                     self.current_mission
                     and self.current_mission.leader_id == self.robot_id

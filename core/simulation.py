@@ -36,7 +36,7 @@ class SimulationController:
         validated_actions = self.resolve_conflicts(actions)
 
         self.logger.debug(
-            f"Simulation step {self.step_count}:\n\tAll actions: {actions}\n\tValid actions: {actions}"
+            f"Simulation step {self.step_count}:\n\tAll actions: {actions}\n\tValid actions: {validated_actions}"
         )
 
         self.execute_actions(validated_actions)
@@ -61,7 +61,7 @@ class SimulationController:
         return self.board.is_valid_position(self._get_new_pos(action))
 
     def pickup_gold(self, robot_1: BaseRobot, robot_2: BaseRobot):
-        if robot_1.partner_id or robot_2.partner_id:
+        if robot_1.partner_id is not None or robot_2.partner_id is not None:
             raise ValueError("One or more robots is already carrying gold")
 
         robot_1.partner_id = robot_2.robot_id
@@ -244,7 +244,7 @@ class SimulationController:
 
     def handle_incoming_messages(self, messages: list[tuple[int | None, Message]]):
         for receiver_id, message in messages:
-            if receiver_id:
+            if receiver_id is not None:
                 self.message_handler.direct_message(receiver_id, message)
             else:
                 self.message_handler.broadcast(message)
