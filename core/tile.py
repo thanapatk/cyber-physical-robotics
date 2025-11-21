@@ -1,4 +1,5 @@
 import logging
+
 from core.enums import TeamEnum
 
 
@@ -24,9 +25,6 @@ class DepositTile(BaseTile):
 
     def take(self):
         raise NotImplementedError("Cannot take gold from a deposit tile")
-
-    def add(self):
-        raise NotImplementedError("Cannot add/drop gold on a deposit tile")
 
     def deposit(self):
         self.gold_count += 1

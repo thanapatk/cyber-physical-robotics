@@ -23,10 +23,7 @@ class MessageHandler:
 
     @staticmethod
     def _get_random_delay() -> int:
-        # return 1
-        return random.randint(
-            1, 5
-        )  # TODO: uncomment this line when what to test random delay
+        return random.randint(1, 5)
 
     def _add_message(self, message_item: MessageItem):
         self.messages[message_item.message.step + self._get_random_delay()].append(
@@ -71,7 +68,5 @@ class MessageHandler:
                 output.append((message_item.receiver_id, message_item.message))
 
         del self.messages[current_step]
-
-        # TODO: implement message drop
 
         return output
